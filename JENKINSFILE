@@ -1,0 +1,86 @@
+pipeline {
+    agent none
+
+    stages {
+        stage('Get Code') {
+            agent { label 'built-in' }
+            options { skipDefaultCheckout() }
+            steps {
+                cleanWs()
+                git 'https://github.com/albertorekena/devops-unir-anieto-todo-list-aws'
+            }
+        }
+
+    stage('Tests') {
+        parallel {
+            stage('Unit') {
+                agent { label 'built-in' }
+                steps {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                        sh '''
+                            export PYTHONPATH=$WORKSPACE
+                            coverage run --branch --source=app --omit=app/__init__.py,app/api.py -m pytest --junitxml=result-unit.xml test/unit
+                            coverage xml --omit=app/__init__.py,app/api.py
+                            coverage json --omit=app/__init__.py,app/api.py -q
+                            python3 -c "import json; d=json.load(open('coverage.json')); t=d['totals']; l=t.get('covered_lines',0); nl=t.get('num_statements',0); b=t.get('covered_branches',0); nb=t.get('num_branches',0); lp=round(100*l/nl,1) if nl else 0; bp=round(100*b/nb,1) if nb else 0; print('Line coverage:   {}/{} ({}%)'.format(l,nl,lp)); print('Branch coverage: {}/{} ({}%)'.format(b,nb,bp))"
+                        '''
+                    }
+                    junit 'result-unit.xml'
+                    publishCoverage adapters: [coberturaAdapter('coverage.xml')],
+                                   failUnhealthy: true,
+                                   globalThresholds: [
+                                       [thresholdTarget: 'Line',        unhealthyThreshold: 85.0, unstableThreshold: 95.0],
+                                       [thresholdTarget: 'Conditional', unhealthyThreshold: 80.0, unstableThreshold: 90.0]
+                                   ]
+                }
+            }
+
+            stage('Rest') {
+                agent { label 'built-in' }
+                steps {
+                    sh '''
+                        [ -f test/wiremock/wiremock-standalone.jar ] || curl -sLo test/wiremock/wiremock-standalone.jar \
+                            https://repo1.maven.org/maven2/com/github/tomakehurst/wiremock-standalone/2.27.2/wiremock-standalone-2.27.2.jar
+                        export FLASK_APP=app/api.py
+                        export FLASK_ENV=development
+                        flask run --port=5001 &
+                        java -jar test/wiremock/wiremock-standalone.jar --port 9090 --root-dir test/wiremock &
+                        sleep 3
+                        export PYTHONPATH=$WORKSPACE
+                        pytest --junitxml=result-rest.xml test/rest
+                    '''
+                    junit 'result-rest.xml'
+                }
+            }
+
+            stage('Static') {
+                agent { label 'built-in' }
+                steps {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                        sh 'flake8 --format=pylint app/ test/ > flake8.out'
+                    }
+                    recordIssues tools: [flake8(pattern: 'flake8.out')],
+                                 enabledForFailure: true,
+                                 qualityGates: [
+                                     [threshold: 8,  type: 'TOTAL', criticality: 'UNSTABLE'],
+                                     [threshold: 10, type: 'TOTAL', criticality: 'FAILURE']
+                                 ]
+                }
+            }
+
+            stage('Security') {
+                agent { label 'built-in' }
+                steps {
+                    sh 'bandit -r app/ -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" --exit-zero'
+                    recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')],
+                                 enabledForFailure: true,
+                                 qualityGates: [
+                                     [threshold: 2, type: 'TOTAL', criticality: 'UNSTABLE'],
+                                     [threshold: 4, type: 'TOTAL', criticality: 'FAILURE']
+                                 ]
+                }
+            }
+        }
+    }
+  }
+}

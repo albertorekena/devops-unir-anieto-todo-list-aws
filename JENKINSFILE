@@ -59,6 +59,7 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 sh '''
+                    aws sts get-caller-identity
                     sam build
                     sam validate --region us-east-1
                     sam deploy --config-env staging \

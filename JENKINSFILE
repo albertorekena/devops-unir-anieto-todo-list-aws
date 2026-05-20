@@ -55,36 +55,30 @@ pipeline {
     //     }
     // }
 
-    stage('Deploy') {
-        agent { label 'built-in' }
-        steps {
-            sh '''
-                sam build
-                sam validate --region us-east-1
-                sam deploy --config-env staging \
-                    --config-file samconfig.toml \
-                    --no-confirm-changeset \
-                    --no-disable-rollback
-            '''
+        stage('Deploy') {
+            agent { label 'built-in' }
+            steps {
+                sh '''
+                    sam build
+                    sam validate --region us-east-1
+                    sam deploy --config-env staging \
+                        --config-file samconfig.toml \
+                        --no-confirm-changeset \
+                        --no-disable-rollback
+                '''
+            }
         }
-    }
 
-    stage('Rest Test') {
-        agent { label 'built-in' }
-        steps {
-            sh '''
-                [ -f test/wiremock/wiremock-standalone.jar ] || curl -sLo test/wiremock/wiremock-standalone.jar \
-                    https://repo1.maven.org/maven2/com/github/tomakehurst/wiremock-standalone/2.27.2/wiremock-standalone-2.27.2.jar
-                export FLASK_APP=app/api.py
-                export FLASK_ENV=development
-                flask run --port=5001 &
-                java -jar test/wiremock/wiremock-standalone.jar --port 9090 --root-dir test/wiremock &
-                sleep 3
-                export PYTHONPATH=$WORKSPACE
-                pytest --junitxml=result-rest.xml test/rest
-            '''
-            junit 'result-rest.xml'
+        stage('Rest Test') {
+            agent { label 'built-in' }
+            steps {
+                sh '''
+                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                    export PYTHONPATH=$WORKSPACE
+                    pytest --junitxml=result-rest.xml test/integration/todoApiTest.py
+                '''
+                junit 'result-rest.xml'
+            }
         }
-    }
     }
 }

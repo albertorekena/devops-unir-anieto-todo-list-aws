@@ -80,5 +80,23 @@ pipeline {
                 junit 'result-rest.xml'
             }
         }
+
+        stage('Promote') {
+            agent { label 'built-in' }
+            steps {
+                sshagent(credentials: ['github-ssh']) {
+                    sh '''
+                        git config user.email "jenkins@jenkins.com"
+                        git config user.name "Jenkins"
+                        ssh-keyscan github.com >> ~/.ssh/known_hosts
+                        git remote set-url origin git@github.com:albertorekena/devops-unir-anieto-todo-list-aws.git
+                        git fetch origin
+                        git checkout master
+                        git merge develop
+                        git push origin master
+                    '''
+                }
+            }
+        }
     }
 }

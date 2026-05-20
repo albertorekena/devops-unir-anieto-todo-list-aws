@@ -61,7 +61,10 @@ pipeline {
             sh '''
                 sam build
                 sam validate --region us-east-1
-                sam deploy --config-env staging
+                sam deploy --config-env staging \
+                    --config-file samconfig.toml \
+                    --no-confirm-changeset \
+                    --no-disable-rollback
             '''
         }
     }

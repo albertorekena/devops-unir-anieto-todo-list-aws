@@ -74,9 +74,9 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 sh '''
-                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name devops-unir-anieto-todo-list-aws-staging --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                     export PYTHONPATH=$WORKSPACE
-                    pytest --junitxml=result-rest.xml test/integration/todoApiTest.py
+                    python3 -m pytest --junitxml=result-rest.xml test/integration/todoApiTest.py
                 '''
                 junit 'result-rest.xml'
             }

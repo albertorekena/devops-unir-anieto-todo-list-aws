@@ -16,18 +16,24 @@ pipeline {
             stage('Static') {
                 agent { label 'built-in' }
                 steps {
-                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                        sh 'python3 -m flake8 --format=pylint --exit-zero src/ > flake8.out'
+                    sh 'python3 -m flake8 --format=pylint src/ > flake8.out'
+                }
+                post {
+                    always {
+                        recordIssues tools: [flake8(pattern: 'flake8.out')], enabledForFailure: true
                     }
-                    recordIssues tools: [flake8(pattern: 'flake8.out')], enabledForFailure: true
                 }
             }
 
             stage('Security') {
                 agent { label 'built-in' }
                 steps {
-                    sh 'python3 -m bandit -r src/ -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" --exit-zero'
-                    recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], enabledForFailure: true
+                    sh 'python3 -m bandit -r src/ -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"'
+                }
+                post {
+                    always {
+                        recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], enabledForFailure: true
+                    }
                 }
             }
         }}

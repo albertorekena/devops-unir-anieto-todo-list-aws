@@ -2,7 +2,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, master]
 
 jobs:
   deploy:
@@ -16,4 +16,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/devops-unir-anieto-todo-list-aws
-            git pull origin develop
+            git pull origin ${{ github.ref_name }}

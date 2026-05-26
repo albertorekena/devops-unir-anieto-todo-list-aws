@@ -11,7 +11,6 @@ pipeline {
                 git branch: 'develop', url: 'https://github.com/albertorekena/devops-unir-anieto-todo-list-aws'
                 sh '''
                     curl -o samconfig.toml https://raw.githubusercontent.com/albertorekena/devops-unir-anieto-todo-list-aws-config/staging/samconfig.toml
-                    grep -q "^version" samconfig.toml || sed -i "1s/^/version = 0.1\\n/" samconfig.toml
                 '''
                 stash name: 'workspace', includes: '**'
             }

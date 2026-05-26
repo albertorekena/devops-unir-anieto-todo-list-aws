@@ -8,6 +8,7 @@ pipeline {
             steps {
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/albertorekena/devops-unir-anieto-todo-list-aws'
+                sh 'curl -o samconfig.toml https://raw.githubusercontent.com/albertorekena/devops-unir-anieto-todo-list-aws-config/staging/samconfig.toml'
             }
         }
 

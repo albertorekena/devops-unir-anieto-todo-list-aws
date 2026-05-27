@@ -9,6 +9,9 @@ pipeline {
                 sh 'whoami && hostname'
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/albertorekena/devops-unir-anieto-todo-list-aws'
+                script {
+                    env.BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                }
                 sh '''
                     curl -o samconfig.toml https://raw.githubusercontent.com/albertorekena/devops-unir-anieto-todo-list-aws-config/staging/samconfig.toml
                 '''
@@ -17,7 +20,7 @@ pipeline {
         }
 
         stage('Static Tests') {
-            when { expression { env.GIT_BRANCH ==~ /.*develop/ } }
+            when { expression { env.BRANCH == 'develop' } }
         parallel {
             stage('Static') {
                 agent { label 'static' }
@@ -43,7 +46,7 @@ pipeline {
         }}
 
         stage('Deploy') {
-            when { expression { env.GIT_BRANCH ==~ /.*develop/ } }
+            when { expression { env.BRANCH == 'develop' } }
             agent { label 'built-in' }
             steps {
                 sh 'whoami && hostname'
@@ -68,7 +71,7 @@ pipeline {
         }
 
         stage('Rest Test') {
-            when { expression { env.GIT_BRANCH ==~ /.*develop/ } }
+            when { expression { env.BRANCH == 'develop' } }
             agent { label 'rest' }
             steps {
                 sh 'whoami && hostname'
@@ -84,7 +87,7 @@ pipeline {
         }
 
         stage('Promote') {
-            when { expression { env.GIT_BRANCH ==~ /.*develop/ } }
+            when { expression { env.BRANCH == 'develop' } }
             agent { label 'built-in' }
             steps {
                 sh 'whoami && hostname'
@@ -107,7 +110,7 @@ pipeline {
         }
 
         stage('Clean Workspace') {
-            when { expression { env.GIT_BRANCH ==~ /.*develop/ } }
+            when { expression { env.BRANCH == 'develop' } }
             agent { label 'built-in' }
             steps {
                 sh 'whoami && hostname'

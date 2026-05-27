@@ -15,6 +15,7 @@ pipeline {
         }
 
         stage('Static Tests') {
+            when { expression { env.GIT_BRANCH == 'origin/develop' } }
         parallel {
             stage('Static') {
                 agent { label 'built-in' }
@@ -36,6 +37,7 @@ pipeline {
         }}
 
         stage('Deploy') {
+            when { expression { env.GIT_BRANCH == 'origin/develop' } }
             agent { label 'built-in' }
             steps {
                 sh '''
@@ -52,6 +54,7 @@ pipeline {
         }
 
         stage('Rest Test') {
+            when { expression { env.GIT_BRANCH == 'origin/develop' } }
             agent { label 'built-in' }
             steps {
                 sh '''
@@ -64,6 +67,7 @@ pipeline {
         }
 
         stage('Promote') {
+            when { expression { env.GIT_BRANCH == 'origin/develop' } }
             agent { label 'built-in' }
             steps {
                 sshagent(credentials: ['github-ssh']) {
@@ -74,7 +78,10 @@ pipeline {
                         git remote set-url origin git@github.com:albertorekena/devops-unir-anieto-todo-list-aws.git
                         git fetch origin
                         git checkout master
-                        git merge -X theirs develop
+                        git merge develop --no-commit --no-ff
+                        git checkout HEAD -- JENKINSFILE
+                        git checkout HEAD -- JENKINSFILE_agentes
+                        git commit -m "Promote develop -> master"
                         git push origin master
                     '''
                 }
@@ -82,6 +89,7 @@ pipeline {
         }
 
         stage('Clean Workspace') {
+            when { expression { env.GIT_BRANCH == 'origin/develop' } }
             agent { label 'built-in' }
             steps {
                 cleanWs()

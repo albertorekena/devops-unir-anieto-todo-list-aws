@@ -16,4 +16,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/devops-unir-anieto-todo-list-aws
-            git pull origin ${{ github.ref_name }}
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}

@@ -15,4 +15,3 @@ A continuación se describe la estructura del proyecto:
 
 aws cloudformation describe-stacks --stack-name todo-list-aws-production --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text
 
-ñ
